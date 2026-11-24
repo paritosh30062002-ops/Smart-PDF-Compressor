@@ -45,8 +45,8 @@ PLANS: dict[str, Plan] = {
     "pro_1k": Plan(
         id="pro_1k",
         name="Pro 1K",
-        price_usd=0.05,
-        price_inr=5,
+        price_usd=50,
+        price_inr=4_799,
         period="month",
         file_limit=None,
         pdf_limit=1_000,

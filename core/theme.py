@@ -907,6 +907,13 @@ html.app-settled [data-testid="stElementContainer"]:has(> .stDownloadButton) {
     font-size: 0.88rem; color: var(--fg-muted) !important;
 }
 
+/* Multiselect tags */
+.stApp [data-baseweb="tag"] {
+    background-color: var(--active-bg) !important; border: 1px solid var(--active) !important; border-radius: 8px !important;
+}
+.stApp [data-baseweb="tag"] span, .stApp [data-baseweb="tag"] svg { color: var(--acc-1) !important; fill: var(--acc-1) !important; }
+.stApp [data-baseweb="select"] > div { background-color: var(--input-bg) !important; border-color: var(--border) !important; border-radius: 11px !important; }
+
 /* Accessibility: respect reduced motion */
 @media (prefers-reduced-motion: reduce) {
     .stApp *, .stApp *::before, .stApp *::after, .stApp::before {

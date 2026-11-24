@@ -94,6 +94,18 @@ dashboard and click **Restore**.
 - **Supabase dashboard**: Table Editor (`profiles`, `usage_events`, `upgrade_requests`) and
   Authentication → Users for email/password accounts.
 
+## Revenue & receipts
+
+- **Revenue page** (admin only, next to Admin in the top menu):
+  - revenue for this month / last 30 days / this year / all time
+  - number of payments, paying customers and active Pro users
+  - monthly revenue chart and a by-plan breakdown
+  - a customer list (who paid, how much, current plan, valid until)
+  - every payment with filters, **Download CSV** (opens in Excel), and a **PDF receipt** per payment
+- **Customers** can download their own receipts from the **Account** page.
+- Receipts show `business_name` and `support_contact` from Secrets. They are payment receipts,
+  not GST tax invoices.
+
 ## Payments (UPI)
 
 Prices in INR are fixed in `core/plans.py` (`price_inr`): Pro 1K ₹4,799 · Pro 3K ₹6,699 · Unlimited ₹14,399.

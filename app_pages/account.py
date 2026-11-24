@@ -6,6 +6,7 @@ import streamlit as st
 from core import nav
 from core.auth import current_user, invalidate_profile, logout, profile_and_quota
 from core.billing import settle_pending_razorpay
+from core.receipts import PAID_STATUSES, receipt_filename, receipt_pdf
 from core.plans import PLANS
 from core.store import get_store
 from core.ui import fmt_date, plan_badge, quota_bars, raw_html
@@ -78,4 +79,10 @@ with right:
             for o in orders:
                 name_ = PLANS[o["plan"]].name if o["plan"] in PLANS else o["plan"]
                 amt = f" · ₹{int(o['amount_inr']):,}" if o.get("amount_inr") else ""
-                st.caption(f"• {name_}{amt} — {labels.get(o['status'], o['status'])} ({fmt_date(o['created_at'])})")
+                row_l, row_r = st.columns([3, 1.2], vertical_alignment="center")
+                row_l.caption(f"• {name_}{amt} — {labels.get(o['status'], o['status'])} "
+                              f"({fmt_date(o.get('paid_at') or o['created_at'])})")
+                if o.get("status") in PAID_STATUSES:
+                    row_r.download_button("Receipt", receipt_pdf(o, profile.get("name") or ""),
+                                          file_name=receipt_filename(o), mime="application/pdf",
+                                          key=f"rcpt_{o['id']}", use_container_width=True)
