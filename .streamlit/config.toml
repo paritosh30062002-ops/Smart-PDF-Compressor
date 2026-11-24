@@ -1,0 +1,12 @@
+# Makes Streamlit's own loading screen match the Dark Glass theme,
+# so the app appears without a white flash before the custom CSS loads.
+[theme]
+base = "dark"
+backgroundColor = "#0a1020"
+secondaryBackgroundColor = "#111a2e"
+textColor = "#f8fafc"
+font = "sans serif"
+
+[client]
+# hides the "Deploy" button / developer menu items for visitors
+toolbarMode = "minimal"
