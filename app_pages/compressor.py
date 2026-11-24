@@ -15,7 +15,7 @@ import streamlit as st
 from core import config, nav
 from core.auth import current_user, invalidate_profile, profile_and_quota
 from core.store import get_store
-from core.ui import plan_badge, raw_html
+from core.ui import plan_badge, quota_summary, raw_html
 
 # --- Session State Initialization ---
 if "result_bundle" not in st.session_state:
@@ -333,14 +333,7 @@ with q_info:
     if quota is None:
         raw_html('<div class="quota-strip">Account service is not reachable right now. Please try again in a minute.</div>')
     else:
-        if quota.plan.id == "free":
-            files_left = quota.files_left
-            limit_txt = (f"<b>{files_left}</b> of {quota.plan.file_limit} free uploads left today"
-                         f" · {quota.pdfs_left} PDFs left")
-        elif quota.pdfs_left is None:
-            limit_txt = "<b>Unlimited</b> PDFs on your plan"
-        else:
-            limit_txt = f"<b>{quota.pdfs_left:,}</b> of {quota.plan.pdf_limit:,} PDFs left this month"
+        limit_txt = quota_summary(quota)
         raw_html(f'<div class="quota-strip"><span>{plan_badge(quota.plan)}&nbsp; {limit_txt}</span></div>')
 with q_reset:
     st.button("Reset", on_click=reset_app, use_container_width=True)

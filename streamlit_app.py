@@ -9,6 +9,7 @@ import streamlit as st
 
 from core import config, nav
 from core.auth import current_user, is_admin, logout, profile_and_quota
+from core.plan_settings import refresh_plans
 from core.store import get_store
 from core.theme import apply_glass_theme, signal_app_ready
 from core.ui import plan_badge, raw_html
@@ -29,6 +30,7 @@ def on_theme_change() -> None:
 
 
 apply_glass_theme(st.session_state.theme_mode)
+refresh_plans()  # admin-edited plans (prices, limits, ...) from the database
 
 user = current_user()
 admin = is_admin(user)
@@ -41,6 +43,7 @@ pages = {
     "account": st.Page("app_pages/account.py", title="Account", icon=":material/person:", url_path="account"),
     "admin": st.Page("app_pages/admin.py", title="Admin", icon=":material/admin_panel_settings:", url_path="admin"),
     "login": st.Page("app_pages/login.py", title="Login", icon=":material/login:", url_path="login"),
+    "plans": st.Page("app_pages/plans_admin.py", title="Plans", icon=":material/tune:", url_path="plans"),
     "revenue": st.Page("app_pages/revenue.py", title="Revenue", icon=":material/payments:", url_path="revenue"),
     "checkout": st.Page("app_pages/checkout.py", title="Checkout", icon=":material/shopping_cart:", url_path="checkout"),
 }
@@ -77,8 +80,8 @@ with h_user:
             st.switch_page(pages["login"])
 
 with st.container(key="topnav"):
-    links = ["compressor", "pricing", "account"] + (["admin", "revenue"] if admin else []) if user else ["login", "pricing"]
-    cols = st.columns(len(links) + (6 - len(links)))
+    links = ["compressor", "pricing", "account"] + (["admin", "plans", "revenue"] if admin else []) if user else ["login", "pricing"]
+    cols = st.columns(max(6, len(links)))
     for col, name in zip(cols, links):
         with col:
             state = "navon" if pages[name].url_path == current.url_path else "navoff"

@@ -2,10 +2,10 @@
 -- Adds payment fields to the upgrade_requests table (safe to run more than once).
 
 alter table public.upgrade_requests add column if not exists amount_inr  integer default 0;
-alter table public.upgrade_requests add column if not exists method      text    default 'manual';  -- upi | razorpay
+alter table public.upgrade_requests add column if not exists method      text    default 'manual';  -- upi
 alter table public.upgrade_requests add column if not exists order_ref   text    default '';
 alter table public.upgrade_requests add column if not exists utr         text    default '';        -- UPI transaction id
-alter table public.upgrade_requests add column if not exists gateway_ref text    default '';        -- Razorpay QR id
+alter table public.upgrade_requests add column if not exists gateway_ref text    default '';        -- reserved
 alter table public.upgrade_requests add column if not exists qr_url      text    default '';
 alter table public.upgrade_requests add column if not exists paid_at     timestamptz;
 

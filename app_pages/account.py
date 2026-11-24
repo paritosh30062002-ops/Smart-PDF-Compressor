@@ -5,7 +5,6 @@ import streamlit as st
 
 from core import nav
 from core.auth import current_user, invalidate_profile, logout, profile_and_quota
-from core.billing import settle_pending_razorpay
 from core.receipts import PAID_STATUSES, receipt_filename, receipt_pdf
 from core.plans import PLANS
 from core.store import get_store
@@ -16,11 +15,6 @@ if not user:
     st.switch_page(nav.page("login"))
 
 store = get_store()
-if store is not None:
-    try:
-        settle_pending_razorpay(store, user["email"])
-    except Exception:
-        pass
 profile, quota = profile_and_quota(user, force=True)
 if profile is None:
     st.error("Account service is not reachable right now. Please try again in a minute.")
@@ -75,7 +69,8 @@ with right:
         if orders:
             st.caption("Your payments")
             labels = {"pending": "awaiting payment", "submitted": "verifying", "paid": "paid ✓",
-                      "approved": "paid ✓", "rejected": "rejected", "expired": "expired"}
+                      "approved": "paid ✓", "rejected": "rejected", "expired": "expired",
+                      "cancelled": "cancelled"}
             for o in orders:
                 name_ = PLANS[o["plan"]].name if o["plan"] in PLANS else o["plan"]
                 amt = f" · ₹{int(o['amount_inr']):,}" if o.get("amount_inr") else ""

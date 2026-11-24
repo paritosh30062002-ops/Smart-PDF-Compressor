@@ -75,16 +75,6 @@ def upi_payee_name() -> str:
     return str(setting("payments", "payee_name", "Smart PDF Compressor") or "Smart PDF Compressor").strip()
 
 
-def razorpay_keys() -> tuple[str, str] | None:
-    key_id = str(setting("razorpay", "key_id", "") or "").strip()
-    key_secret = str(setting("razorpay", "key_secret", "") or "").strip()
-    return (key_id, key_secret) if key_id and key_secret else None
-
-
 def payment_mode() -> str:
-    """'razorpay' (fully automatic), 'upi' (QR + UTR, admin verifies) or 'off'."""
-    if razorpay_keys():
-        return "razorpay"
-    if upi_id():
-        return "upi"
-    return "off"
+    """'upi' when a UPI ID is set in Secrets, otherwise 'off'."""
+    return "upi" if upi_id() else "off"

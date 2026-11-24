@@ -71,7 +71,7 @@ for o in to_verify:
     if c2.button("Activate", key=f"act_{o['id']}", type="primary", use_container_width=True):
         activate_order(store, o, "approved")
         invalidate_profile()
-        st.toast(f"{o['email']} is now on {plan.name if plan else o['plan']} for {PLAN_DAYS} days.")
+        st.toast(f"{o['email']} is now on {plan.name if plan else o['plan']} for {plan.days if plan else PLAN_DAYS} days.")
         st.rerun()
     if c3.button("Reject", key=f"rej_{o['id']}", use_container_width=True):
         store.update_order(o["id"], status="rejected")
@@ -83,7 +83,7 @@ if recent_paid:
             "Email": o["email"],
             "Plan": PLANS[o["plan"]].name if o["plan"] in PLANS else o["plan"],
             "Amount (₹)": o.get("amount_inr") or 0,
-            "Method": "Razorpay (auto)" if o.get("method") == "razorpay" else "UPI (verified)",
+            "Method": "UPI",
             "Order": o.get("order_ref") or "",
             "UTR": o.get("utr") or "",
             "Paid at": fmt_date(o.get("paid_at") or o.get("created_at")),
@@ -131,8 +131,8 @@ with a1:
         st.markdown("**Change plan**")
         new_plan = st.selectbox("Plan", list(PLANS), format_func=lambda k: f"{PLANS[k].name} (${PLANS[k].price_usd})",
                                 key="adm_plan")
-        days = st.number_input("Days valid", min_value=1, max_value=365, value=PLAN_DAYS, key="adm_days",
-                               disabled=new_plan == "free")
+        days = st.number_input("Days valid", min_value=1, max_value=3650, value=PLANS[new_plan].days,
+                               key=f"adm_days_{new_plan}", disabled=new_plan == "free")
         if st.button("Apply plan", type="primary", use_container_width=True):
             store.set_plan(target, new_plan, int(days))
             invalidate_profile()
@@ -141,11 +141,17 @@ with a1:
 with a2:
     with st.container(key="glasscard_reset"):
         st.markdown("**Reset usage**")
-        st.caption("Deletes this user's usage history, so their limits start again from zero.")
-        if st.button("Reset usage", use_container_width=True):
+        st.caption("Deletes usage history, so limits start again from zero.")
+        if st.button("Reset this user", use_container_width=True):
             store.reset_usage(target)
             invalidate_profile()
             st.toast(f"Usage reset for {target}")
+            st.rerun()
+        all_sure = st.checkbox(f"Yes, reset all {len(profiles)} users", key="adm_reset_all_sure")
+        if st.button("Reset all", use_container_width=True, disabled=not all_sure, key="adm_reset_all"):
+            store.reset_all_usage()
+            invalidate_profile()
+            st.toast(f"Usage reset for all {len(profiles)} users")
             st.rerun()
 with a3:
     with st.container(key="glasscard_delete"):

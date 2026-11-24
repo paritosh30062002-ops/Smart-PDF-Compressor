@@ -128,6 +128,10 @@ class SupabaseStore:
     def reset_usage(self, email: str) -> None:
         self._db.table("usage_events").delete().eq("email", email).execute()
 
+    def reset_all_usage(self) -> None:
+        # PostgREST needs a filter on delete; id >= 0 matches every row
+        self._db.table("usage_events").delete().gte("id", 0).execute()
+
     def delete_user_data(self, email: str) -> None:
         self._db.table("upgrade_requests").delete().eq("email", email).execute()
         self._db.table("usage_events").delete().eq("email", email).execute()
@@ -174,6 +178,15 @@ class SupabaseStore:
     def update_order(self, order_id: int, **fields) -> None:
         self._db.table("upgrade_requests").update(fields).eq("id", order_id).execute()
 
+    # ---- app settings (admin-editable plans etc.) ----
+    def get_setting(self, key: str):
+        res = self._db.table("app_settings").select("value").eq("key", key).limit(1).execute()
+        return res.data[0]["value"] if res.data else None
+
+    def set_setting(self, key: str, value) -> None:
+        self._db.table("app_settings").upsert(
+            {"key": key, "value": value, "updated_at": _iso(now_utc())}, on_conflict="key").execute()
+
     def list_orders(self, statuses: list[str] | None = None, email: str | None = None, limit: int = 200) -> list[dict]:
         q = self._db.table("upgrade_requests").select("*").order("created_at", desc=True).limit(limit)
         if statuses:
@@ -212,6 +225,7 @@ create table if not exists usage_events (
     id integer primary key autoincrement, email text, files_count integer, pdf_count integer,
     bytes_before integer, bytes_after integer,
     created_at text default (strftime('%Y-%m-%dT%H:%M:%f+00:00','now')));
+create table if not exists app_settings (key text primary key, value text, updated_at text);
 create table if not exists upgrade_requests (
     id integer primary key autoincrement, email text, plan text, note text, status text default 'pending',
     amount_inr integer default 0, method text default 'manual', order_ref text default '', utr text default '',
@@ -309,6 +323,9 @@ class LocalStore:
     def reset_usage(self, email: str) -> None:
         self._q("delete from usage_events where email=?", (email,))
 
+    def reset_all_usage(self) -> None:
+        self._q("delete from usage_events")
+
     def delete_user_data(self, email: str) -> None:
         for t in ("upgrade_requests", "usage_events", "profiles", "auth_users"):
             self._q(f"delete from {t} where email=?", (email,))
@@ -352,6 +369,17 @@ class LocalStore:
         if fields:
             cols = ", ".join(f"{k}=?" for k in fields)
             self._q(f"update upgrade_requests set {cols} where id=?", (*fields.values(), order_id))
+
+    def get_setting(self, key: str):
+        import json
+        rows = self._q("select value from app_settings where key=?", (key,))
+        return json.loads(rows[0]["value"]) if rows and rows[0]["value"] else None
+
+    def set_setting(self, key: str, value) -> None:
+        import json
+        self._q("insert into app_settings(key,value,updated_at) values (?,?,?) "
+                "on conflict(key) do update set value=excluded.value, updated_at=excluded.updated_at",
+                (key, json.dumps(value), _iso(now_utc())))
 
     def list_orders(self, statuses=None, email=None, limit: int = 200) -> list[dict]:
         sql, args = "select * from upgrade_requests where 1=1", []

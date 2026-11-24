@@ -41,6 +41,17 @@ def quota_bars(quota: Quota) -> str:
     return "".join(parts)
 
 
+def quota_summary(quota: Quota) -> str:
+    """One-line limit text for the compressor strip (HTML, numbers in bold)."""
+    when = "today" if quota.plan.period == "day" else "this plan period"
+    parts = []
+    if quota.plan.file_limit is not None:
+        parts.append(f"<b>{quota.files_left:,}</b> of {quota.plan.file_limit:,} uploads left {when}")
+    if quota.plan.pdf_limit is not None:
+        parts.append(f"<b>{quota.pdfs_left:,}</b> of {quota.plan.pdf_limit:,} PDFs left {when}")
+    return " · ".join(parts) or "<b>Unlimited</b> PDFs on your plan"
+
+
 def fmt_date(value) -> str:
     dt = parse_ts(value)
     return dt.astimezone(APP_TZ).strftime("%d %b %Y, %I:%M %p") if dt else "—"

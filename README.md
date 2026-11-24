@@ -89,10 +89,20 @@ dashboard and click **Restore**.
 - **Admin page** (in the app): all users, today's and 30-day usage, pending upgrade requests.
   - **Activate**: gives the requested Pro plan for 30 days.
   - **Change plan**: any plan, any number of days.
-  - **Reset usage**: clears a user's usage, so their limit starts from zero again.
+  - **Reset usage**: clears one user's usage (**Reset this user**) or everyone's (**Reset all**), so limits start from zero again.
   - **Delete user data**: removes profile, usage and requests.
 - **Supabase dashboard**: Table Editor (`profiles`, `usage_events`, `upgrade_requests`) and
   Authentication → Users for email/password accounts.
+
+## Plans (edit without code)
+
+**Admin → Plans** lets you change every plan: name, tagline, price ₹ (UPI) and $ (shown), days valid,
+PDF limit, upload limit (or Unlimited), extra feature lines, "Show on pricing page" and "Most popular".
+Click **Save** and it applies immediately to the pricing page, checkout QR amount and every user's limits.
+Unpaid orders at an old price are cancelled automatically. **Reset to defaults** restores the values in
+`core/plans.py`. Settings are stored in the `app_settings` table.
+
+Existing installs: run `supabase_plans_update.sql` once in the Supabase SQL Editor.
 
 ## Revenue & receipts
 
@@ -106,30 +116,21 @@ dashboard and click **Restore**.
 - Receipts show `business_name` and `support_contact` from Secrets. They are payment receipts,
   not GST tax invoices.
 
-## Payments (UPI)
+## Payments (UPI QR)
 
 Prices in INR are fixed in `core/plans.py` (`price_inr`): Pro 1K ₹4,799 · Pro 3K ₹6,699 · Unlimited ₹14,399.
-"Get Pro" opens a checkout page with a UPI QR for the exact amount. Two modes:
+You can also change them from Secrets without editing code (see `[prices]` in `secrets.toml.example`).
 
-**1. Direct UPI (free, works today).** Add your UPI ID in Secrets:
+Add your UPI ID in Secrets:
 ```toml
 [payments]
 upi_id = "yourname@okaxis"
 payee_name = "Smart PDF Compressor"
 ```
-The user scans the QR, pays, and enters the 12-digit UTR. The payment shows up in
-**Admin → Payments to verify**. Check it in your bank/UPI app and click **Activate**.
-
-**2. Razorpay (fully automatic).** Add your Razorpay API keys:
-```toml
-[razorpay]
-key_id = "rzp_live_..."
-key_secret = "..."
-```
-Each order gets a single-use Razorpay UPI QR (valid 30 minutes). The checkout page checks it
-every 5 seconds and activates the plan as soon as the payment is captured. A payment made after
-the user closed the tab is picked up the next time they open Pricing or Account.
-Razorpay's UPI QR feature must be enabled for your account (ask Razorpay support).
+"Get Pro" opens a checkout page with a UPI QR for the exact amount and an order number.
+The user pays with any UPI app and enters the 12-digit UTR (or clicks **Cancel payment**).
+The payment shows up in **Admin → Payments to verify**: check it in your bank/UPI app and click **Activate**.
+If you change a price, unpaid orders at the old price are cancelled and a new QR is made at the new price.
 
 Existing installs: run `supabase_payments_update.sql` once in the Supabase SQL Editor.
 

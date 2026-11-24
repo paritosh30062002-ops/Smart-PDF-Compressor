@@ -31,7 +31,7 @@ create table if not exists public.upgrade_requests (
     note        text default '',
     status      text not null default 'pending',  -- pending | submitted | paid | approved | rejected | expired
     amount_inr  integer default 0,
-    method      text default 'manual',             -- upi | razorpay
+    method      text default 'manual',             -- upi
     order_ref   text default '',
     utr         text default '',
     gateway_ref text default '',
@@ -41,10 +41,17 @@ create table if not exists public.upgrade_requests (
 );
 create index if not exists upgrade_requests_email_status on public.upgrade_requests (email, status);
 
+create table if not exists public.app_settings (   -- admin-editable plans etc.
+    key        text primary key,
+    value      jsonb,
+    updated_at timestamptz default now()
+);
+
 -- Lock the tables: only the server (service_role key, kept in Streamlit Secrets) can read/write.
 alter table public.profiles         enable row level security;
 alter table public.usage_events     enable row level security;
 alter table public.upgrade_requests enable row level security;
+alter table public.app_settings     enable row level security;
 
 -- Newer Supabase projects don't grant table access automatically: give it to the server key only.
 grant usage on schema public to service_role;

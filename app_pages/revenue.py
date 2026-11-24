@@ -121,8 +121,9 @@ else:
 st.subheader("All payments")
 fc1, fc2 = st.columns(2)
 with fc1:
-    status_labels = {"paid": "Paid (auto)", "approved": "Paid (verified)", "submitted": "Waiting for verification",
-                     "pending": "Not completed", "rejected": "Rejected", "expired": "Expired"}
+    status_labels = {"paid": "Paid", "approved": "Paid (verified)", "submitted": "Waiting for verification",
+                     "pending": "Not completed", "rejected": "Rejected", "expired": "Expired",
+                     "cancelled": "Cancelled"}
     statuses = st.multiselect("Status", list(status_labels), default=["paid", "approved"],
                               format_func=lambda s: status_labels[s])
 with fc2:
@@ -145,11 +146,11 @@ for o in orders:
         "Email": o["email"],
         "Plan": plan.name if plan else o.get("plan"),
         "Amount (₹)": int(o.get("amount_inr") or 0),
-        "Method": "Razorpay" if o.get("method") == "razorpay" else "UPI",
+        "Method": "UPI",
         "Status": status_labels.get(o.get("status"), o.get("status")),
         "Order no.": o.get("order_ref") or str(o["id"]),
         "UTR / Ref": o.get("utr") or o.get("gateway_ref") or "",
-        "Valid until": fmt_date(paid_dt + timedelta(days=PLAN_DAYS)) if paid_dt else "",
+        "Valid until": fmt_date(paid_dt + timedelta(days=plan.days if plan else PLAN_DAYS)) if paid_dt else "",
     })
 st.dataframe(table, use_container_width=True, hide_index=True)
 
@@ -171,5 +172,5 @@ with d2:
             st.download_button("Download receipt", receipt_pdf(pick, name), file_name=receipt_filename(pick),
                                mime="application/pdf", use_container_width=True, key="rcpt_admin")
 
-st.caption("Razorpay payments can also be seen in your Razorpay Dashboard → Transactions. "
-           "Raw data lives in Supabase → Table Editor → upgrade_requests.")
+st.caption("Raw data lives in Supabase → Table Editor → upgrade_requests. "
+           "Match each payment with your bank / UPI app statement using the UTR.")

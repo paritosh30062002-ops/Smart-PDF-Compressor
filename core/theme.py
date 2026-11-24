@@ -468,7 +468,10 @@ html.app-settled [data-testid="stElementContainer"]:has(> .stDownloadButton) {
 .stApp [data-testid="stCode"] button *, .stApp [data-testid="stCodeBlock"] button * { background: transparent !important; color: var(--btn-fg) !important; }
 
 /* ---------- Dataframe & toolbar ---------- */
-.stApp [data-testid="stDataFrame"] { border-radius: 12px !important; overflow: hidden; border: 1px solid var(--border) !important; }
+.stApp [data-testid="stDataFrame"] { border-radius: 12px !important; overflow: visible !important; }
+.stApp [data-testid="stDataFrame"] [data-testid="stDataFrameResizable"],
+.stApp [data-testid="stDataFrame"] .stDataFrameGlideDataEditor { border-radius: 12px !important; }
+.stApp [data-testid="stElementToolbar"] { z-index: 5 !important; }
 .stApp [data-testid="stElementToolbar"], .stApp [data-testid="stElementToolbar"] > div {
     background-color: var(--toolbar-bg) !important;
     border: 1px solid var(--border) !important;
@@ -598,7 +601,7 @@ html.app-settled [data-testid="stElementContainer"]:has(> .stDownloadButton) {
     opacity: 0;
     transition: block-size 0.4s var(--ease), opacity 0.3s var(--ease), content-visibility 0.4s allow-discrete !important;
 }
-.stApp [data-testid="stExpander"] details[open]::details-content { block-size: auto; opacity: 1; }
+.stApp [data-testid="stExpander"] details[open]::details-content { block-size: auto; opacity: 1; overflow: visible; }
 .stApp [data-testid="stExpander"] * { color: var(--fg) !important; }
 
 /* ---------- Metrics ---------- */

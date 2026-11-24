@@ -34,10 +34,11 @@ def receipt_pdf(order: dict, customer_name: str = "") -> bytes:
     plan_name = plan.name if plan else str(order.get("plan"))
     paid_at = order.get("paid_at") or order.get("created_at")
     start = parse_ts(paid_at)
-    valid_to = _d(start + timedelta(days=PLAN_DAYS)) if start else "-"
+    days = plan.days if plan else PLAN_DAYS
+    valid_to = _d(start + timedelta(days=days)) if start else "-"
     amount = int(order.get("amount_inr") or 0)
-    method = "UPI via Razorpay" if order.get("method") == "razorpay" else "UPI"
-    ref = order.get("utr") or order.get("gateway_ref") or "-"
+    method = "UPI"
+    ref = order.get("utr") or "-"
     business = str(config.setting("app", "business_name", "Smart PDF Compressor"))
     contact = config.support_contact()
 
@@ -84,12 +85,12 @@ def receipt_pdf(order: dict, customer_name: str = "") -> bytes:
     c.drawRightString(W - 24 * mm, y + 1 * mm, "Amount")
     y -= 12 * mm
     c.setFont("Helvetica", 10.5)
-    c.drawString(24 * mm, y, f"{plan_name} plan - 30 days")
+    c.drawString(24 * mm, y, f"{plan_name} plan - {days} days")
     c.drawString(96 * mm, y, f"{_d(paid_at)} - {valid_to}")
     c.drawRightString(W - 24 * mm, y, f"INR {amount:,.2f}")
     if plan:
         c.setFillColor(muted); c.setFont("Helvetica", 9)
-        limit = "Unlimited PDFs" if plan.pdf_limit is None else f"{plan.pdf_limit:,} PDFs per month"
+        limit = "Unlimited PDFs" if plan.pdf_limit is None else f"{plan.pdf_limit:,} PDFs per {plan.period_label}"
         c.drawString(24 * mm, y - 5 * mm, limit)
     c.setStrokeColor(colors.HexColor("#e2e8f0")); c.line(20 * mm, y - 10 * mm, W - 20 * mm, y - 10 * mm)
 
