@@ -9,6 +9,7 @@ import streamlit as st
 
 from core import nav
 from core.auth import current_user, invalidate_profile, is_admin
+from core.billing import activate_order
 from core.plans import PLAN_DAYS, PLANS, effective_plan, now_utc, parse_ts, start_of_today_utc
 from core.store import get_store
 from core.ui import fmt_date
@@ -28,7 +29,9 @@ if store is None:
 try:
     profiles = store.list_profiles()
     month_rows = store.usage_rows_since(now_utc() - timedelta(days=30))
-    pending = store.list_upgrade_requests(status="pending")
+    to_verify = [o for o in store.list_orders(statuses=["submitted", "pending"])
+                 if o["status"] == "submitted" or o.get("method") in (None, "", "manual")]
+    recent_paid = store.list_orders(statuses=["paid", "approved"], limit=20)
 except Exception as exc:
     st.error(f"Could not load data: {exc}")
     st.stop()
@@ -51,26 +54,40 @@ m1, m2, m3, m4 = st.columns(4)
 m1.metric("Total users", f"{len(profiles):,}")
 m2.metric("Active Pro users", f"{pro_users:,}")
 m3.metric("PDFs today", f"{sum(v[1] for v in by_user_today.values()):,}")
-m4.metric("Pending upgrade requests", f"{len(pending):,}")
+m4.metric("Payments to verify", f"{len(to_verify):,}")
 
-# --- Upgrade requests ---
-st.subheader("Upgrade requests")
-if not pending:
-    st.caption("No pending requests.")
-for req in pending:
-    plan = PLANS.get(req["plan"])
-    c1, c2, c3 = st.columns([4, 1.2, 1.2], vertical_alignment="center")
-    c1.markdown(f"**{req['email']}** wants **{plan.name if plan else req['plan']}** "
-                f"(${plan.price_usd if plan else '?'}) · {fmt_date(req['created_at'])}")
-    if c2.button("Activate", key=f"act_{req['id']}", type="primary", use_container_width=True):
-        store.set_plan(req["email"], req["plan"], PLAN_DAYS)
-        store.set_request_status(req["id"], "approved")
+# --- Payments to verify (UPI) ---
+st.subheader("Payments to verify")
+st.caption("Open your bank / UPI app, find the payment by amount and UTR, then click Activate.")
+if not to_verify:
+    st.caption("Nothing to verify right now.")
+for o in to_verify:
+    plan = PLANS.get(o["plan"])
+    c1, c2, c3 = st.columns([4.2, 1.1, 1.1], vertical_alignment="center")
+    utr = o.get("utr") or "—"
+    amount = f"₹{int(o['amount_inr']):,}" if o.get("amount_inr") else (f"${plan.price_usd}" if plan else "?")
+    c1.markdown(f"**{o['email']}** · {plan.name if plan else o['plan']} · **{amount}**  \n"
+                f"UTR `{utr}` · Order `{o.get('order_ref') or o['id']}` · {fmt_date(o['created_at'])}")
+    if c2.button("Activate", key=f"act_{o['id']}", type="primary", use_container_width=True):
+        activate_order(store, o, "approved")
         invalidate_profile()
-        st.toast(f"{req['email']} is now on {plan.name if plan else req['plan']} for {PLAN_DAYS} days.")
+        st.toast(f"{o['email']} is now on {plan.name if plan else o['plan']} for {PLAN_DAYS} days.")
         st.rerun()
-    if c3.button("Reject", key=f"rej_{req['id']}", use_container_width=True):
-        store.set_request_status(req["id"], "rejected")
+    if c3.button("Reject", key=f"rej_{o['id']}", use_container_width=True):
+        store.update_order(o["id"], status="rejected")
         st.rerun()
+
+if recent_paid:
+    with st.expander(f"Recent successful payments ({len(recent_paid)})"):
+        st.dataframe([{
+            "Email": o["email"],
+            "Plan": PLANS[o["plan"]].name if o["plan"] in PLANS else o["plan"],
+            "Amount (₹)": o.get("amount_inr") or 0,
+            "Method": "Razorpay (auto)" if o.get("method") == "razorpay" else "UPI (verified)",
+            "Order": o.get("order_ref") or "",
+            "UTR": o.get("utr") or "",
+            "Paid at": fmt_date(o.get("paid_at") or o.get("created_at")),
+        } for o in recent_paid], use_container_width=True, hide_index=True)
 
 # --- Users table ---
 st.subheader("Users")

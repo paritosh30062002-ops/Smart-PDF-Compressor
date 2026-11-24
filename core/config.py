@@ -63,3 +63,28 @@ def support_contact() -> str:
 def allow_folder_export() -> bool:
     # Off by default: on a public server this would write into the SERVER's disk.
     return as_bool(setting("app", "allow_folder_export", "false"))
+
+
+# ---- payments ----
+def upi_id() -> str:
+    """Your UPI ID (VPA) for direct UPI QR payments, e.g. yourname@okhdfcbank."""
+    return str(setting("payments", "upi_id", "") or "").strip()
+
+
+def upi_payee_name() -> str:
+    return str(setting("payments", "payee_name", "Smart PDF Compressor") or "Smart PDF Compressor").strip()
+
+
+def razorpay_keys() -> tuple[str, str] | None:
+    key_id = str(setting("razorpay", "key_id", "") or "").strip()
+    key_secret = str(setting("razorpay", "key_secret", "") or "").strip()
+    return (key_id, key_secret) if key_id and key_secret else None
+
+
+def payment_mode() -> str:
+    """'razorpay' (fully automatic), 'upi' (QR + UTR, admin verifies) or 'off'."""
+    if razorpay_keys():
+        return "razorpay"
+    if upi_id():
+        return "upi"
+    return "off"

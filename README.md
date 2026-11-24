@@ -94,11 +94,32 @@ dashboard and click **Restore**.
 - **Supabase dashboard**: Table Editor (`profiles`, `usage_events`, `upgrade_requests`) and
   Authentication → Users for email/password accounts.
 
-## Payments
+## Payments (UPI)
 
-Right now "Get Pro" sends an **upgrade request**. You collect the payment yourself
-(UPI / bank / payment link) and click **Activate** in the Admin page. A payment gateway
-can be added later to activate plans automatically.
+Prices in INR are fixed in `core/plans.py` (`price_inr`): Pro 1K ₹4,799 · Pro 3K ₹6,699 · Unlimited ₹14,399.
+"Get Pro" opens a checkout page with a UPI QR for the exact amount. Two modes:
+
+**1. Direct UPI (free, works today).** Add your UPI ID in Secrets:
+```toml
+[payments]
+upi_id = "yourname@okaxis"
+payee_name = "Smart PDF Compressor"
+```
+The user scans the QR, pays, and enters the 12-digit UTR. The payment shows up in
+**Admin → Payments to verify**. Check it in your bank/UPI app and click **Activate**.
+
+**2. Razorpay (fully automatic).** Add your Razorpay API keys:
+```toml
+[razorpay]
+key_id = "rzp_live_..."
+key_secret = "..."
+```
+Each order gets a single-use Razorpay UPI QR (valid 30 minutes). The checkout page checks it
+every 5 seconds and activates the plan as soon as the payment is captured. A payment made after
+the user closed the tab is picked up the next time they open Pricing or Account.
+Razorpay's UPI QR feature must be enabled for your account (ask Razorpay support).
+
+Existing installs: run `supabase_payments_update.sql` once in the Supabase SQL Editor.
 
 ## Notes
 

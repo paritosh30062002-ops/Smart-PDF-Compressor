@@ -9,7 +9,7 @@ from core.store import StoreError, get_store
 from core.ui import raw_html
 
 if current_user():
-    st.switch_page(nav.page("compressor"))
+    st.switch_page(nav.page("checkout" if st.session_state.get("checkout_plan") else "compressor"))
 
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
@@ -43,7 +43,7 @@ with mid:
                 else:
                     try:
                         login_email(email, password)
-                        st.switch_page(nav.page("compressor"))
+                        st.switch_page(nav.page("checkout" if st.session_state.get("checkout_plan") else "compressor"))
                     except StoreError as exc:
                         st.error(str(exc))
 
@@ -86,7 +86,7 @@ with mid:
                         if result == "confirm":
                             st.success("Account created! Check your inbox and click the confirmation link, then log in.")
                         else:
-                            st.switch_page(nav.page("compressor"))
+                            st.switch_page(nav.page("checkout" if st.session_state.get("checkout_plan") else "compressor"))
                     except StoreError as exc:
                         st.error(str(exc))
 

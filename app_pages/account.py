@@ -5,6 +5,7 @@ import streamlit as st
 
 from core import nav
 from core.auth import current_user, invalidate_profile, logout, profile_and_quota
+from core.billing import settle_pending_razorpay
 from core.plans import PLANS
 from core.store import get_store
 from core.ui import fmt_date, plan_badge, quota_bars, raw_html
@@ -13,8 +14,13 @@ user = current_user()
 if not user:
     st.switch_page(nav.page("login"))
 
-profile, quota = profile_and_quota(user, force=True)
 store = get_store()
+if store is not None:
+    try:
+        settle_pending_razorpay(store, user["email"])
+    except Exception:
+        pass
+profile, quota = profile_and_quota(user, force=True)
 if profile is None:
     st.error("Account service is not reachable right now. Please try again in a minute.")
     st.stop()
@@ -62,11 +68,14 @@ with right:
                      use_container_width=True)
 
         try:
-            reqs = store.list_upgrade_requests(status=None, email=user["email"])[:5]
+            orders = store.list_orders(email=user["email"], limit=5)
         except Exception:
-            reqs = []
-        if reqs:
-            st.caption("Your upgrade requests")
-            for r in reqs:
-                name_ = PLANS.get(r["plan"]).name if r["plan"] in PLANS else r["plan"]
-                st.caption(f"• {name_} — {r['status']} ({fmt_date(r['created_at'])})")
+            orders = []
+        if orders:
+            st.caption("Your payments")
+            labels = {"pending": "awaiting payment", "submitted": "verifying", "paid": "paid ✓",
+                      "approved": "paid ✓", "rejected": "rejected", "expired": "expired"}
+            for o in orders:
+                name_ = PLANS[o["plan"]].name if o["plan"] in PLANS else o["plan"]
+                amt = f" · ₹{int(o['amount_inr']):,}" if o.get("amount_inr") else ""
+                st.caption(f"• {name_}{amt} — {labels.get(o['status'], o['status'])} ({fmt_date(o['created_at'])})")

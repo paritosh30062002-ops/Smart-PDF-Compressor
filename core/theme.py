@@ -891,6 +891,22 @@ html.app-settled [data-testid="stElementContainer"]:has(> .stDownloadButton) {
 [class*="st-key-navon_"] [data-testid="stPageLink-NavLink"] p,
 [class*="st-key-navon_"] [data-testid="stPageLink-NavLink"] span { font-weight: 700 !important; color: var(--acc-1) !important; }
 
+/* Checkout */
+.order-meta { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); font-size: 0.82rem; color: var(--fg-muted) !important; }
+.order-meta b { color: var(--fg) !important; font-family: 'JetBrains Mono', ui-monospace, monospace; }
+.pay-title { font-size: 1.15rem; font-weight: 800; color: var(--fg) !important; letter-spacing: -0.01em; }
+.pay-amount { text-align: center; font-size: 2rem; font-weight: 800; letter-spacing: -0.02em; color: var(--fg) !important; margin-top: 4px; }
+.st-key-qrbox { display: flex !important; justify-content: center !important; margin: 14px 0 4px 0; }
+.st-key-qrbox [data-testid="stImage"], .st-key-qrbox [data-testid="stImageContainer"] { display: flex; justify-content: center; }
+.st-key-qrbox img {
+    background: #ffffff !important; padding: 10px !important; border-radius: 16px !important;
+    box-shadow: 0 14px 36px -16px var(--lift-c) !important;
+}
+.waiting {
+    display: flex; align-items: center; justify-content: center; gap: 9px; margin-top: 10px;
+    font-size: 0.88rem; color: var(--fg-muted) !important;
+}
+
 /* Accessibility: respect reduced motion */
 @media (prefers-reduced-motion: reduce) {
     .stApp *, .stApp *::before, .stApp *::after, .stApp::before {

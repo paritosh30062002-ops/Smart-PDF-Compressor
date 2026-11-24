@@ -67,7 +67,8 @@ def signup_email(name: str, email: str, phone: str, password: str) -> str:
 
 def logout() -> None:
     google = _google_user() is not None
-    for key in ("email_user", "_profile_synced_for", "_profile_cache", "result_bundle"):
+    for key in ("email_user", "_profile_synced_for", "_profile_cache", "result_bundle",
+                "checkout_plan", "checkout_order"):
         st.session_state.pop(key, None)
     st.session_state["terminal_logs"] = []
     if google:

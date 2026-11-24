@@ -158,6 +158,30 @@ class SupabaseStore:
     def set_request_status(self, request_id: int, status: str) -> None:
         self._db.table("upgrade_requests").update({"status": status}).eq("id", request_id).execute()
 
+    # ---- orders / payments (stored in upgrade_requests) ----
+    def create_order(self, email: str, plan_id: str, amount_inr: int, method: str, order_ref: str,
+                     gateway_ref: str = "", qr_url: str = "") -> dict:
+        res = self._db.table("upgrade_requests").insert({
+            "email": email, "plan": plan_id, "amount_inr": amount_inr, "method": method,
+            "order_ref": order_ref, "gateway_ref": gateway_ref, "qr_url": qr_url, "status": "pending",
+        }).execute()
+        return res.data[0]
+
+    def get_order(self, order_id: int) -> dict | None:
+        res = self._db.table("upgrade_requests").select("*").eq("id", order_id).limit(1).execute()
+        return res.data[0] if res.data else None
+
+    def update_order(self, order_id: int, **fields) -> None:
+        self._db.table("upgrade_requests").update(fields).eq("id", order_id).execute()
+
+    def list_orders(self, statuses: list[str] | None = None, email: str | None = None, limit: int = 200) -> list[dict]:
+        q = self._db.table("upgrade_requests").select("*").order("created_at", desc=True).limit(limit)
+        if statuses:
+            q = q.in_("status", statuses)
+        if email:
+            q = q.eq("email", email)
+        return q.execute().data or []
+
 
 def _friendly_auth_error(exc: Exception) -> str:
     msg = str(exc)
@@ -190,6 +214,8 @@ create table if not exists usage_events (
     created_at text default (strftime('%Y-%m-%dT%H:%M:%f+00:00','now')));
 create table if not exists upgrade_requests (
     id integer primary key autoincrement, email text, plan text, note text, status text default 'pending',
+    amount_inr integer default 0, method text default 'manual', order_ref text default '', utr text default '',
+    gateway_ref text default '', qr_url text default '', paid_at text,
     created_at text default (strftime('%Y-%m-%dT%H:%M:%f+00:00','now')));
 """
 
@@ -202,6 +228,12 @@ class LocalStore:
         self._conn = sqlite3.connect(path, check_same_thread=False)
         self._conn.row_factory = sqlite3.Row
         self._conn.executescript(_SCHEMA)
+        for col in ("amount_inr integer default 0", "method text default 'manual'", "order_ref text default ''",
+                    "utr text default ''", "gateway_ref text default ''", "qr_url text default ''", "paid_at text"):
+            try:  # upgrade an older demo database
+                self._conn.execute(f"alter table upgrade_requests add column {col}")
+            except sqlite3.OperationalError:
+                pass
         self._conn.commit()
 
     def _q(self, sql: str, args: tuple = ()) -> list[dict]:
@@ -302,6 +334,32 @@ class LocalStore:
 
     def set_request_status(self, request_id: int, status: str) -> None:
         self._q("update upgrade_requests set status=? where id=?", (status, request_id))
+
+    def create_order(self, email, plan_id, amount_inr, method, order_ref, gateway_ref="", qr_url="") -> dict:
+        with self._lock:
+            cur = self._conn.execute(
+                "insert into upgrade_requests(email,plan,amount_inr,method,order_ref,gateway_ref,qr_url,status) "
+                "values (?,?,?,?,?,?,?, 'pending')", (email, plan_id, amount_inr, method, order_ref, gateway_ref, qr_url))
+            self._conn.commit()
+            new_id = cur.lastrowid
+        return self.get_order(new_id)
+
+    def get_order(self, order_id: int) -> dict | None:
+        rows = self._q("select * from upgrade_requests where id=?", (order_id,))
+        return rows[0] if rows else None
+
+    def update_order(self, order_id: int, **fields) -> None:
+        if fields:
+            cols = ", ".join(f"{k}=?" for k in fields)
+            self._q(f"update upgrade_requests set {cols} where id=?", (*fields.values(), order_id))
+
+    def list_orders(self, statuses=None, email=None, limit: int = 200) -> list[dict]:
+        sql, args = "select * from upgrade_requests where 1=1", []
+        if statuses:
+            sql += " and status in (%s)" % ",".join("?" * len(statuses)); args += list(statuses)
+        if email:
+            sql += " and email=?"; args.append(email)
+        return self._q(sql + " order by created_at desc limit ?", (*args, limit))
 
 
 # --------------------------------------------------------------------------------------

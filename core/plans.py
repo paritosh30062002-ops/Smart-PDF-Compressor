@@ -23,6 +23,7 @@ class Plan:
     tagline: str
     features: tuple[str, ...]
     popular: bool = False
+    price_inr: int = 0        # what Indian customers pay via UPI (fixed, so the QR amount never changes)
 
 
 PLANS: dict[str, Plan] = {
@@ -45,6 +46,7 @@ PLANS: dict[str, Plan] = {
         id="pro_1k",
         name="Pro 1K",
         price_usd=50,
+        price_inr=4_799,
         period="month",
         file_limit=None,
         pdf_limit=1_000,
@@ -60,6 +62,7 @@ PLANS: dict[str, Plan] = {
         id="pro_3k",
         name="Pro 3K",
         price_usd=70,
+        price_inr=6_699,
         period="month",
         file_limit=None,
         pdf_limit=3_000,
@@ -76,6 +79,7 @@ PLANS: dict[str, Plan] = {
         id="pro_unlimited",
         name="Unlimited",
         price_usd=150,
+        price_inr=14_399,
         period="month",
         file_limit=None,
         pdf_limit=None,

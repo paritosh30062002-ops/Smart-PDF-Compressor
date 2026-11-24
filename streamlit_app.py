@@ -41,6 +41,7 @@ pages = {
     "account": st.Page("app_pages/account.py", title="Account", icon=":material/person:", url_path="account"),
     "admin": st.Page("app_pages/admin.py", title="Admin", icon=":material/admin_panel_settings:", url_path="admin"),
     "login": st.Page("app_pages/login.py", title="Login", icon=":material/login:", url_path="login"),
+    "checkout": st.Page("app_pages/checkout.py", title="Checkout", icon=":material/payments:", url_path="checkout"),
 }
 nav.register(pages)
 current = st.navigation(list(pages.values()), position="hidden")
