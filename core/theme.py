@@ -939,6 +939,7 @@ _THEME_CSS = "\n".join(line for line in _build_theme_css().splitlines() if line.
 # (the app itself runs in an iframe), so the app's own CSS cannot reach them. This adds one
 # <style> tag to that outer page; a stylesheet also covers badges that are drawn later.
 _HIDE_BADGE_JS = """
+<div class="theme-flag"></div>
 <script>
 (function () {
     const id = 'spc-hide-streamlit-badge';
@@ -990,7 +991,8 @@ _READY_JS = """
 <div class="app-ready-signal"></div>
 <script>
 (function () {
-    const doc = (window.parent && window.parent.document) ? window.parent.document : document;
+    // st.html runs inside the app's own page. Do not use window.parent: on Streamlit Cloud that is the outer frame.
+    const doc = document;
     const root = doc.documentElement;
     if (root.classList.contains('app-ready')) return;
     const t0 = performance.now();

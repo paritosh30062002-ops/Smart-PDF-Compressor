@@ -6,7 +6,9 @@ Local test (no setup):  SPC_DEMO=1 SPC_APP_ADMIN_EMAILS=you@example.com streamli
 import html
 
 import streamlit as st
+from streamlit.runtime.scriptrunner import StopException
 
+from app_pages import legal
 from core import config, nav
 from core.auth import current_user, is_admin, logout, profile_and_quota
 from core.plan_settings import refresh_plans
@@ -46,6 +48,9 @@ pages = {
     "plans": st.Page("app_pages/plans_admin.py", title="Plans", icon=":material/tune:", url_path="plans"),
     "revenue": st.Page("app_pages/revenue.py", title="Revenue", icon=":material/payments:", url_path="revenue"),
     "checkout": st.Page("app_pages/checkout.py", title="Checkout", icon=":material/shopping_cart:", url_path="checkout"),
+    "terms": st.Page(legal.terms, title="Terms", icon=":material/gavel:", url_path="terms"),
+    "privacy": st.Page(legal.privacy, title="Privacy", icon=":material/shield:", url_path="privacy"),
+    "refund": st.Page(legal.refund, title="Refunds", icon=":material/currency_rupee:", url_path="refund"),
 }
 nav.register(pages)
 current = st.navigation(list(pages.values()), position="hidden")
@@ -96,7 +101,16 @@ if config.demo_mode() and not config.supabase_configured():
 elif get_store() is None:
     st.warning("Setup needed: add your Supabase keys in Secrets (see README). Login and plans are disabled until then.")
 
-current.run()
+try:
+    current.run()
+except StopException:
+    pass  # the page used st.stop(): still show the footer and reveal the UI
+
+# --- Footer: legal links on every page ---
+st.markdown("<hr style='margin:1.6rem 0 0.4rem 0;'>", unsafe_allow_html=True)
+with st.container(key="legalfooter", horizontal=True, horizontal_alignment="center"):
+    for name in ("terms", "privacy", "refund"):
+        st.page_link(pages[name], width="content")
 
 # --- Reveal the fully rendered UI in one smooth fade (keep this as the last line) ---
 signal_app_ready()

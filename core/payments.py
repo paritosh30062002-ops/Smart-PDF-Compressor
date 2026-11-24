@@ -48,4 +48,4 @@ def qr_png(data: str) -> bytes:
 
 def valid_utr(utr: str) -> bool:
     utr = utr.strip()
-    return utr.isdigit() and len(utr) == 12
+    return utr.isascii() and utr.isdigit() and len(utr) == 12

@@ -8,7 +8,7 @@ import streamlit as st
 
 from core import config, nav
 from core.auth import current_user, invalidate_profile, profile_and_quota
-from core.billing import cancel_order, get_or_create_order, is_current_price
+from core.billing import cancel_order, get_or_create_order, is_current_price, submit_utr
 from core.payments import PaymentError, qr_png, upi_uri, valid_utr
 from core.plans import PLANS
 from core.store import get_store
@@ -132,9 +132,14 @@ with right:
                     if not valid_utr(utr):
                         st.error("Enter the 12-digit UTR number from your UPI app.")
                     else:
-                        store.update_order(order["id"], status="submitted", utr=utr.strip())
-                        st.rerun()
+                        try:
+                            submit_utr(store, order, utr)
+                        except PaymentError as exc:
+                            st.error(str(exc))
+                        else:
+                            st.rerun()
                 cancel_button()
+                st.caption("By paying you agree to the [Terms](/terms) and [Refund Policy](/refund).")
             contact = config.support_contact()
             if contact:
                 st.caption(f"Need help? Contact {contact} with your order number {order['order_ref']}.")

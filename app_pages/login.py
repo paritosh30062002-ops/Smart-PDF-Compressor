@@ -26,6 +26,8 @@ with mid:
             st.button("Continue with Google", key="google_login", use_container_width=True, disabled=True,
                       help="Add Google OAuth keys in Secrets to enable this (see README).")
 
+        st.caption("By continuing you agree to the [Terms](/terms) and [Privacy Policy](/privacy).")
+
         raw_html('<div class="or-divider">or use email</div>')
 
         store_ready = get_store() is not None
@@ -63,7 +65,7 @@ with mid:
                 phone = st.text_input("Phone (optional)", placeholder="+91 98765 43210")
                 s_pw = st.text_input("Password", type="password", help="At least 8 characters.", key="s_pw")
                 s_pw2 = st.text_input("Confirm password", type="password", key="s_pw2")
-                agree = st.checkbox("I agree that my files are processed temporarily and deleted after compression.")
+                agree = st.checkbox("I agree to the [Terms](/terms) and [Privacy Policy](/privacy).")
                 created = st.form_submit_button("Create free account", type="primary", use_container_width=True,
                                                 disabled=not store_ready)
             if created:
@@ -77,7 +79,7 @@ with mid:
                 if s_pw != s_pw2:
                     errors.append("Passwords do not match.")
                 if not agree:
-                    errors.append("Please accept the note about file processing.")
+                    errors.append("Please accept the Terms and Privacy Policy.")
                 if errors:
                     st.error(" ".join(errors))
                 else:

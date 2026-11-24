@@ -42,11 +42,50 @@ def get_or_create_order(store, email: str, plan_id: str) -> dict:
     return store.create_order(email, plan_id, plan.price_inr, "upi", new_order_ref())
 
 
+UTR_USED_STATUSES = ("submitted", "paid", "approved")  # a rejected UTR can be submitted again
+UTR_USED_MSG = ("This UTR has already been submitted for another order. Check the number, "
+                "or contact support if it is your payment.")
+
+
+def utr_conflict(store, order: dict, statuses: tuple = UTR_USED_STATUSES) -> dict | None:
+    """Another order that already uses this order's UTR, if any."""
+    utr = (order.get("utr") or "").strip()
+    if not utr:
+        return None
+    return next((o for o in store.orders_with_utr(utr)
+                 if o["id"] != order["id"] and o.get("status") in statuses), None)
+
+
+def _is_duplicate_error(exc: Exception) -> bool:
+    text = str(exc).lower()
+    return "23505" in text or "unique constraint" in text
+
+
+def submit_utr(store, order: dict, utr: str) -> None:
+    """Save the user's UTR on a pending order. One UTR can be used for one order only."""
+    utr = utr.strip()
+    fresh = store.get_order(order["id"])
+    if not fresh or fresh.get("status") != "pending":
+        raise PaymentError("This order can no longer be updated. Refresh the page and try again.")
+    if utr_conflict(store, {**fresh, "utr": utr}):
+        raise PaymentError(UTR_USED_MSG)
+    try:
+        store.update_order(fresh["id"], status="submitted", utr=utr)
+    except Exception as exc:  # database unique index: two people submitted it at the same moment
+        if _is_duplicate_error(exc):
+            raise PaymentError(UTR_USED_MSG) from exc
+        raise
+
+
 def activate_order(store, order: dict, status: str = "approved") -> None:
     """Give the user the plan for 30 days (idempotent)."""
     fresh = store.get_order(order["id"]) or order
     if fresh.get("status") in ("paid", "approved"):
         return
+    used = utr_conflict(store, fresh, ("paid", "approved"))
+    if used:
+        raise PaymentError(f"Not activated: UTR {fresh['utr']} was already used for order "
+                           f"{used.get('order_ref') or used['id']} ({used['email']}).")
     plan = PLANS.get(fresh["plan"])
     store.set_plan(fresh["email"], fresh["plan"], plan.days if plan else PLAN_DAYS)
     store.update_order(fresh["id"], status=status, paid_at=now_utc().isoformat())

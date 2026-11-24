@@ -40,6 +40,9 @@ create table if not exists public.upgrade_requests (
     created_at  timestamptz not null default now()
 );
 create index if not exists upgrade_requests_email_status on public.upgrade_requests (email, status);
+-- one UTR = one payment (rejected orders are ignored)
+create unique index if not exists upgrade_requests_utr_unique on public.upgrade_requests (utr)
+    where utr <> '' and status in ('submitted', 'paid', 'approved');
 
 create table if not exists public.app_settings (   -- admin-editable plans etc.
     key        text primary key,

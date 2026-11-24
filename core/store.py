@@ -175,6 +175,9 @@ class SupabaseStore:
         res = self._db.table("upgrade_requests").select("*").eq("id", order_id).limit(1).execute()
         return res.data[0] if res.data else None
 
+    def orders_with_utr(self, utr: str) -> list[dict]:
+        return self._db.table("upgrade_requests").select("*").eq("utr", utr).execute().data or []
+
     def update_order(self, order_id: int, **fields) -> None:
         self._db.table("upgrade_requests").update(fields).eq("id", order_id).execute()
 
@@ -248,6 +251,11 @@ class LocalStore:
                 self._conn.execute(f"alter table upgrade_requests add column {col}")
             except sqlite3.OperationalError:
                 pass
+        try:  # same rule as supabase_utr_update.sql
+            self._conn.execute("create unique index if not exists upgrade_requests_utr_unique on upgrade_requests (utr) "
+                               "where utr <> '' and status in ('submitted','paid','approved')")
+        except sqlite3.IntegrityError:
+            pass  # an old demo database already has duplicates; the check in billing.py still applies
         self._conn.commit()
 
     def _q(self, sql: str, args: tuple = ()) -> list[dict]:
@@ -364,6 +372,9 @@ class LocalStore:
     def get_order(self, order_id: int) -> dict | None:
         rows = self._q("select * from upgrade_requests where id=?", (order_id,))
         return rows[0] if rows else None
+
+    def orders_with_utr(self, utr: str) -> list[dict]:
+        return self._q("select * from upgrade_requests where utr=?", (utr,))
 
     def update_order(self, order_id: int, **fields) -> None:
         if fields:

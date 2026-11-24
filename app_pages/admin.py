@@ -9,7 +9,8 @@ import streamlit as st
 
 from core import nav
 from core.auth import current_user, invalidate_profile, is_admin
-from core.billing import activate_order
+from core.billing import activate_order, utr_conflict
+from core.payments import PaymentError
 from core.plans import PLAN_DAYS, PLANS, effective_plan, now_utc, parse_ts, start_of_today_utc
 from core.store import get_store
 from core.ui import fmt_date
@@ -68,8 +69,16 @@ for o in to_verify:
     amount = f"₹{int(o['amount_inr']):,}" if o.get("amount_inr") else (f"${plan.price_usd}" if plan else "?")
     c1.markdown(f"**{o['email']}** · {plan.name if plan else o['plan']} · **{amount}**  \n"
                 f"UTR `{utr}` · Order `{o.get('order_ref') or o['id']}` · {fmt_date(o['created_at'])}")
+    used = utr_conflict(store, o)
+    if used:
+        c1.warning(f"Same UTR is on order {used.get('order_ref') or used['id']} "
+                   f"({used['email']}, {used['status']}). Check before activating.")
     if c2.button("Activate", key=f"act_{o['id']}", type="primary", use_container_width=True):
-        activate_order(store, o, "approved")
+        try:
+            activate_order(store, o, "approved")
+        except PaymentError as exc:
+            st.error(str(exc))
+            st.stop()
         invalidate_profile()
         st.toast(f"{o['email']} is now on {plan.name if plan else o['plan']} for {plan.days if plan else PLAN_DAYS} days.")
         st.rerun()
