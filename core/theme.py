@@ -127,6 +127,9 @@ html, body, .stApp {
     z-index: 1;
 }
 [data-testid="stHeader"] { background: transparent !important; height: 2rem !important; }
+/* Streamlit Cloud branding inside the app frame: Fork / GitHub buttons, menu, footer */
+[data-testid="stToolbarActions"], [data-testid="stMainMenu"], [data-testid="stAppDeployButton"],
+#MainMenu, footer { display: none !important; }
 .block-container, [data-testid="stMainBlockContainer"] {
     padding-top: 2.2rem !important;
     padding-bottom: 2rem !important;
@@ -932,6 +935,31 @@ html.app-settled [data-testid="stElementContainer"]:has(> .stDownloadButton) {
 # Blank lines would end the HTML block in Streamlit's markdown parser, so strip them.
 _THEME_CSS = "\n".join(line for line in _build_theme_css().splitlines() if line.strip())
 
+# Streamlit Cloud draws the red crown badge and the creator avatar in the page *around* the app
+# (the app itself runs in an iframe), so the app's own CSS cannot reach them. This adds one
+# <style> tag to that outer page; a stylesheet also covers badges that are drawn later.
+_HIDE_BADGE_JS = """
+<script>
+(function () {
+    const id = 'spc-hide-streamlit-badge';
+    const css = '[class*="viewerBadge"], [class*="_profileContainer"], [class*="_profilePreview"],'
+        + '[data-testid="appCreatorAvatar"], a[href*="streamlit.io/cloud"], a[href*="share.streamlit.io/user/"]'
+        + '{ display: none !important; }';
+    [window, window.parent, window.top].forEach(function (w) {
+        try {
+            const doc = w.document;
+            if (doc.getElementById(id)) return;
+            const style = doc.createElement('style');
+            style.id = id;
+            style.textContent = css;
+            doc.head.appendChild(style);
+        } catch (e) { /* cross-origin parent: nothing we can do */ }
+    });
+})();
+</script>
+"""
+
+
 def apply_glass_theme(theme_mode: str) -> None:
     is_dark = theme_mode == "Dark Glass"
 
@@ -950,6 +978,12 @@ def apply_glass_theme(theme_mode: str) -> None:
         st.html(flag_html)
     else:
         st.markdown(flag_html, unsafe_allow_html=True)
+
+    # 3) Remove the Streamlit Cloud badge (here, not at the end, so st.stop() pages get it too).
+    try:
+        st.html(_HIDE_BADGE_JS, unsafe_allow_javascript=True)
+    except TypeError:
+        pass  # older Streamlit: no script support in st.html
 
 
 _READY_JS = """
