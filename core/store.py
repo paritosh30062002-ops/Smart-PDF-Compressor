@@ -391,8 +391,13 @@ class LocalStore:
 
 
 # --------------------------------------------------------------------------------------
+# Changes whenever this file changes, so an updated app never keeps an old store object in memory
+# (Streamlit Cloud reloads code on a GitHub push without restarting, but cached objects would survive).
+_CODE_VERSION = hashlib.sha1(Path(__file__).read_bytes()).hexdigest()[:12]
+
+
 @st.cache_resource(show_spinner=False)
-def _make_store(kind: str, url: str = "", service_key: str = "", anon_key: str = ""):
+def _make_store(kind: str, url: str = "", service_key: str = "", anon_key: str = "", version: str = ""):
     if kind == "supabase":
         return SupabaseStore(url, service_key, anon_key)
     path = os.environ.get("SPC_DEMO_DB", str(Path(__file__).resolve().parent.parent / "demo_data.sqlite3"))
@@ -403,7 +408,8 @@ def get_store():
     """The active store, or None if nothing is configured yet."""
     if config.supabase_configured():
         return _make_store("supabase", config.setting("supabase", "url"),
-                           config.setting("supabase", "service_key"), config.setting("supabase", "anon_key"))
+                           config.setting("supabase", "service_key"), config.setting("supabase", "anon_key"),
+                           version=_CODE_VERSION)
     if config.demo_mode():
-        return _make_store("local")
+        return _make_store("local", version=_CODE_VERSION)
     return None

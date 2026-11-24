@@ -917,6 +917,9 @@ html.app-settled [data-testid="stElementContainer"]:has(> .stDownloadButton) {
 .stApp [data-baseweb="tag"] span, .stApp [data-baseweb="tag"] svg { color: var(--acc-1) !important; fill: var(--acc-1) !important; }
 .stApp [data-baseweb="select"] > div { background-color: var(--input-bg) !important; border-color: var(--border) !important; border-radius: 11px !important; }
 
+/* Hide Streamlit's "Press Enter to submit form" / "17/40" hints that overlap the typed text */
+.stApp [data-testid="InputInstructions"] { display: none !important; }
+
 /* Accessibility: respect reduced motion */
 @media (prefers-reduced-motion: reduce) {
     .stApp *, .stApp *::before, .stApp *::after, .stApp::before {
